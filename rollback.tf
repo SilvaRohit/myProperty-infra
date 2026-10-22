@@ -32,6 +32,7 @@ resource "aws_ssm_document" "property_rollback" {
         timeoutSeconds = "1800"
         runCommand = [
           "set -eu",
+          "/opt/property-app-deploy/refresh-env.sh",
           "printf '%s' '${base64encode(local.property_rollback_button_script)}' | base64 --decode | bash"
         ]
       }
