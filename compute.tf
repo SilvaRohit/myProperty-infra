@@ -41,6 +41,6 @@ resource "aws_instance" "property_app" {
 
   tags = {
     Name      = var.instance_name
-    Portfolio = "TeceroTech"
+    Portfolio = "TeceroTech-HCP"
   }
 }
