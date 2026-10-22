@@ -1,0 +1,11 @@
+# OPTIONAL: rename to backend.tf only AFTER the bucket exists.
+# Requires Terraform >=1.10. The state bucket is managed separately.
+terraform {
+  backend "s3" {
+    bucket       = "REPLACE_WITH_EXISTING_STATE_BUCKET"
+    key          = "property-app/dev/terraform.tfstate"
+    region       = "ap-southeast-7"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
