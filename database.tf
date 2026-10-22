@@ -52,11 +52,11 @@ resource "aws_db_instance" "existing_property_db" {
   parameter_group_name = "default.postgres18"
   option_group_name    = "default:postgres-18"
 
-  backup_retention_period    = 1
+  backup_retention_period    = 7
   backup_window              = "08:34-09:04"
   maintenance_window         = "fri:15:10-fri:15:40"
   auto_minor_version_upgrade = true
-  deletion_protection        = false
+  deletion_protection        = true
 
   # Preserve current monitoring choices; do not enable new monitoring here.
   monitoring_interval          = 0
