@@ -84,3 +84,9 @@ output "uploads_backup_bucket" {
   description = "S3 bucket for uploaded-document backups."
   value       = aws_s3_bucket.property_backups.id
 }
+
+#Secrets Outputs
+output "application_secret_arn" {
+  description = "ARN of the application configuration secret."
+  value       = aws_secretsmanager_secret.property_config.arn
+}
