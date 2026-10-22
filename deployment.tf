@@ -71,6 +71,7 @@ resource "aws_ssm_document" "property_deploy" {
         timeoutSeconds = "1500"
         runCommand = [
           "set -eu",
+          "/opt/property-app-deploy/refresh-env.sh",
           "exec /opt/property-app-deploy/deploy.sh \"$SSM_ImageUri\""
         ]
       }
