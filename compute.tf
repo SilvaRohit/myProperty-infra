@@ -36,9 +36,9 @@ resource "aws_instance" "property_app" {
   }
 
   root_block_device {
-    encrypted = true
+    encrypted   = true
+    volume_size = 30
   }
-
   tags = {
     Name      = var.instance_name
     Portfolio = "TeceroTech-HCP"
