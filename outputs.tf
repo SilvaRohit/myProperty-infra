@@ -79,3 +79,8 @@ output "rollback_ssm_document_name" {
   value = aws_ssm_document.property_rollback.name
 }
 
+#S3 Backups Outputs
+output "uploads_backup_bucket" {
+  description = "S3 bucket for uploaded-document backups."
+  value       = aws_s3_bucket.property_backups.id
+}
