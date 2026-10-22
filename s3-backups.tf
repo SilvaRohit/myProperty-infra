@@ -105,3 +105,47 @@ resource "aws_s3_bucket_policy" "property_backups" {
   })
 }
 
+#s3 bucket policy for the existing EC2 instance role to allow it to read and write backups to the S3 bucket.
+resource "aws_iam_role_policy" "property_uploads_backup" {
+  name = "property-app-uploads-backup"
+  role = var.deployment_existing_ec2_role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Sid      = "ReadBackupBucketLocation"
+        Effect   = "Allow"
+        Action   = "s3:GetBucketLocation"
+        Resource = aws_s3_bucket.property_backups.arn
+      },
+      {
+        Sid    = "ListUploadBackups"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:ListBucketVersions"
+        ]
+        Resource = aws_s3_bucket.property_backups.arn
+
+        Condition = {
+          StringLike = {
+            "s3:prefix" = ["uploads/*"]
+          }
+        }
+      },
+      {
+        Sid    = "UploadAndRetrieveBackups"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:GetObjectVersion",
+          "s3:AbortMultipartUpload"
+        ]
+        Resource = "${aws_s3_bucket.property_backups.arn}/uploads/*"
+      }
+    ]
+  })
+}
