@@ -123,3 +123,9 @@ variable "deployment_existing_ec2_role_name" {
   }
 }
 
+#SNS variables
+variable "alert_email" {
+  description = "Email address for property application alerts"
+  type        = string
+}
+
