@@ -42,7 +42,6 @@ resource "aws_db_instance" "existing_property_db" {
   db_subnet_group_name = aws_db_subnet_group.existing_property_db.name
   vpc_security_group_ids = [
     data.aws_security_group.existing_rds.id,
-    aws_security_group.property_app.id,
   ]
 
   publicly_accessible = false
