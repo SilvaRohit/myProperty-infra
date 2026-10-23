@@ -96,3 +96,9 @@ output "alerts_topic_arn" {
   description = "SNS topic used for monitoring notifications"
   value       = aws_sns_topic.property_alerts.arn
 }
+
+#CloudWatch LogsGroup Outputs
+output "application_log_group_name" {
+  description = "CloudWatch log group for application logs"
+  value       = aws_cloudwatch_log_group.property_app.name
+}
