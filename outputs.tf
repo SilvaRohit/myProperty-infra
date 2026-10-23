@@ -90,3 +90,9 @@ output "application_secret_arn" {
   description = "ARN of the application configuration secret."
   value       = aws_secretsmanager_secret.property_config.arn
 }
+
+#SNS Alerts Outputs
+output "alerts_topic_arn" {
+  description = "SNS topic used for monitoring notifications"
+  value       = aws_sns_topic.property_alerts.arn
+}
