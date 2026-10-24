@@ -105,3 +105,11 @@ variable "enable_backups" {
 variable "take_final_snapshot" {
   type = bool
 }
+
+#ElasticIP
+variable "associate_elastic_ip" {
+  description = "Whether to attach an Elastic IP."
+  type        = bool
+  default     = false
+  nullable    = false
+}

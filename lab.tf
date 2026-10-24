@@ -22,6 +22,7 @@ module "lab" {
   database_password_version    = var.database_password_version
   database_deletion_protection = var.database_deletion_protection
   final_snapshot_identifier    = var.final_snapshot_identifier
+  associate_elastic_ip         = true
   elastic_ip_allocation_id     = aws_eip.existing_property_app.id
   application_secret_arn       = aws_secretsmanager_secret.property_config.arn
   initial_image_uri            = var.initial_image_uri
@@ -63,6 +64,7 @@ module "rehearsal" {
   database_password_version    = var.database_password_version
   database_deletion_protection = false
   final_snapshot_identifier    = "property-app-rehearsal-final"
+  associate_elastic_ip         = false
   elastic_ip_allocation_id     = null
   application_secret_arn       = aws_secretsmanager_secret.property_config.arn
   initial_image_uri            = var.initial_image_uri
