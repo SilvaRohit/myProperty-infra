@@ -1,0 +1,29 @@
+name: Validate infrastructure and bootstrap
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
+        with:
+          terraform_version: 1.16.6
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive
+      - name: Python and Bash checks
+        run: |
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
+          find bootstrap -name '*.sh' -print0 | xargs -0 -n1 bash -n
+      - name: Validate without HCP or AWS credentials
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+          terraform test

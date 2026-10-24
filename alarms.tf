@@ -17,7 +17,7 @@ locals {
 }
 
 resource "aws_cloudwatch_metric_alarm" "property_ec2_usage" {
-  for_each = local.property_ec2_usage_alarms
+  for_each = var.lab_enabled ? local.property_ec2_usage_alarms : {}
 
   alarm_name        = "property-app-dev-ec2-${each.key}-high"
   alarm_description = each.value.description
@@ -34,7 +34,7 @@ resource "aws_cloudwatch_metric_alarm" "property_ec2_usage" {
   datapoints_to_alarm = 3
 
   dimensions = {
-    InstanceId = aws_instance.property_app.id
+    InstanceId = module.lab[0].instance_id
   }
 
   treat_missing_data = "missing"
@@ -69,7 +69,7 @@ locals {
 }
 
 resource "aws_cloudwatch_metric_alarm" "property_rds" {
-  for_each = local.property_rds_alarms
+  for_each = var.lab_enabled ? local.property_rds_alarms : {}
 
   alarm_name        = "property-app-dev-rds-${each.key}"
   alarm_description = each.value.description
@@ -85,7 +85,7 @@ resource "aws_cloudwatch_metric_alarm" "property_rds" {
   datapoints_to_alarm = 3
 
   dimensions = {
-    DBInstanceIdentifier = aws_db_instance.existing_property_db.identifier
+    DBInstanceIdentifier = module.lab[0].database_identifier
   }
 
   treat_missing_data = "missing"

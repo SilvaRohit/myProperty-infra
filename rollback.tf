@@ -32,6 +32,7 @@ resource "aws_ssm_document" "property_rollback" {
         timeoutSeconds = "1800"
         runCommand = [
           "set -eu",
+          "if [ -f /opt/property-app-rebuild/started ]; then timeout 600 cloud-init status --wait; test -f /opt/property-app-rebuild/completed; fi",
           "/opt/property-app-deploy/refresh-env.sh",
           "printf '%s' '${base64encode(local.property_rollback_button_script)}' | base64 --decode | bash"
         ]
@@ -48,8 +49,7 @@ resource "aws_iam_role_policy" "github_property_rollback" {
     Statement = [{
       Effect   = "Allow"
       Action   = "ssm:SendCommand"
-      Resource = [aws_ssm_document.property_rollback.arn, aws_instance.property_app.arn]
+      Resource = concat([aws_ssm_document.property_rollback.arn], [for lab in module.lab : lab.instance_arn])
     }]
   })
 }
-

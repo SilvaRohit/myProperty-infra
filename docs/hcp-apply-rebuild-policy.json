@@ -1,0 +1,151 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RegionalDisposableNetworkAndCompute",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateVpc",
+        "ec2:DeleteVpc",
+        "ec2:ModifyVpcAttribute",
+        "ec2:CreateSubnet",
+        "ec2:DeleteSubnet",
+        "ec2:ModifySubnetAttribute",
+        "ec2:CreateInternetGateway",
+        "ec2:DeleteInternetGateway",
+        "ec2:AttachInternetGateway",
+        "ec2:DetachInternetGateway",
+        "ec2:CreateRouteTable",
+        "ec2:DeleteRouteTable",
+        "ec2:AssociateRouteTable",
+        "ec2:DisassociateRouteTable",
+        "ec2:ReplaceRouteTableAssociation",
+        "ec2:CreateRoute",
+        "ec2:ReplaceRoute",
+        "ec2:DeleteRoute",
+        "ec2:CreateSecurityGroup",
+        "ec2:DeleteSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:CreateNetworkAclEntry",
+        "ec2:ReplaceNetworkAclEntry",
+        "ec2:DeleteNetworkAclEntry",
+        "ec2:RunInstances",
+        "ec2:TerminateInstances",
+        "ec2:ModifyInstanceAttribute",
+        "ec2:ModifyInstanceMetadataOptions",
+        "ec2:CreateTags",
+        "ec2:DeleteTags",
+        "ec2:AssociateAddress",
+        "ec2:DisassociateAddress"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-7"
+        }
+      }
+    },
+    {
+      "Sid": "ManagePropertyDatabaseAndSubnets",
+      "Effect": "Allow",
+      "Action": [
+        "rds:CreateDBInstance",
+        "rds:RestoreDBInstanceFromDBSnapshot",
+        "rds:ModifyDBInstance",
+        "rds:DeleteDBInstance",
+        "rds:CreateDBSubnetGroup",
+        "rds:ModifyDBSubnetGroup",
+        "rds:DeleteDBSubnetGroup",
+        "rds:AddTagsToResource",
+        "rds:RemoveTagsFromResource",
+        "rds:CreateDBSnapshot"
+      ],
+      "Resource": [
+        "arn:aws:rds:ap-southeast-7:147997138960:db:property-app*",
+        "arn:aws:rds:ap-southeast-7:147997138960:subgrp:property-app*",
+        "arn:aws:rds:ap-southeast-7:147997138960:subgrp:default-vpc-0e4ef49349eaa8ec3",
+        "arn:aws:rds:ap-southeast-7:147997138960:snapshot:*",
+        "arn:aws:rds:ap-southeast-7:147997138960:pg:default.postgres18",
+        "arn:aws:rds:ap-southeast-7:147997138960:og:default:postgres-18"
+      ]
+    },
+    {
+      "Sid": "PassOnlyTheExistingEC2Role",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::147997138960:role/instanceRole",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ec2.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "ManageExistingDeploymentPolicies",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy"
+      ],
+      "Resource": [
+        "arn:aws:iam::147997138960:role/instanceRole",
+        "arn:aws:iam::147997138960:role/property-app-dev-github-ecr-push"
+      ]
+    },
+    {
+      "Sid": "ManagePropertySSMDocuments",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:CreateDocument",
+        "ssm:UpdateDocument",
+        "ssm:UpdateDocumentDefaultVersion",
+        "ssm:DeleteDocument",
+        "ssm:AddTagsToResource",
+        "ssm:RemoveTagsFromResource"
+      ],
+      "Resource": "arn:aws:ssm:ap-southeast-7:147997138960:document/property-app-dev-*"
+    },
+    {
+      "Sid": "ManageOnlyDeploymentPointer",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:PutParameter",
+        "ssm:DeleteParameter",
+        "ssm:AddTagsToResource",
+        "ssm:RemoveTagsFromResource"
+      ],
+      "Resource": "arn:aws:ssm:ap-southeast-7:147997138960:parameter/property-app/dev/deployment/instance-id"
+    },
+    {
+      "Sid": "EphemeralDatabasePasswordRead",
+      "Effect": "Allow",
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "arn:aws:secretsmanager:ap-southeast-7:147997138960:secret:property-app/dev/config-*"
+    },
+    {
+      "Sid": "RestoreTheRetainedEncryptedSnapshot",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt",
+        "kms:DescribeKey",
+        "kms:GenerateDataKey"
+      ],
+      "Resource": "arn:aws:kms:ap-southeast-7:147997138960:key/9509e285-3454-4138-b5b7-be6ff87d5e0f"
+    },
+    {
+      "Sid": "RDSServiceGrantForRetainedKey",
+      "Effect": "Allow",
+      "Action": "kms:CreateGrant",
+      "Resource": "arn:aws:kms:ap-southeast-7:147997138960:key/9509e285-3454-4138-b5b7-be6ff87d5e0f",
+      "Condition": {
+        "Bool": {
+          "kms:GrantIsForAWSResource": "true"
+        }
+      }
+    }
+  ]
+}

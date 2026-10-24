@@ -1,4 +1,5 @@
 terraform {
+  required_version = ">= 1.11, < 2.0"
   cloud {
     hostname     = "app.terraform.io"
     organization = "tecerotech"

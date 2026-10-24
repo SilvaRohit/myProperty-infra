@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily property uploads backup
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 Asia/Bangkok
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -15,3 +15,9 @@ crash.*.log
 *.pem
 *.key
 note.md
+
+# State exports remain sensitive even with a .json extension.
+terraform-state-backups/
+__pycache__/
+*.py[cod]
+rebuild-evidence/

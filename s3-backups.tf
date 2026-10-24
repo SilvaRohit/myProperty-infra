@@ -108,7 +108,7 @@ resource "aws_s3_bucket_policy" "property_backups" {
 #s3 bucket policy for the existing EC2 instance role to allow it to read and write backups to the S3 bucket.
 resource "aws_iam_role_policy" "property_uploads_backup" {
   name = "property-app-uploads-backup"
-  role = var.deployment_existing_ec2_role_name
+  role = local.property_deploy_ec2_role_name
 
   policy = jsonencode({
     Version = "2012-10-17"
