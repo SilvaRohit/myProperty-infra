@@ -1,13 +1,31 @@
-mock_provider "aws" {
-  mock_data "aws_ami" {
-    defaults = { id = "ami-0123456789abcdef0" }
-  }
-  mock_data "aws_iam_policy_document" {
-    defaults = { json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}" }
-  }
+# Terraform 1.16 cannot validate ephemeral resources through mock_provider,
+# even when their count is zero. Use the real provider's local validation with
+# dummy credentials instead. Both runs are plan-only, remote AMI reads are
+# overridden, imports are disabled, and existing mode never opens the secret.
+provider "aws" {
+  region                      = "ap-southeast-7"
+  access_key                  = "test"
+  secret_key                  = "test"
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+  skip_metadata_api_check     = true
+  skip_region_validation      = true
 }
-mock_provider "aws" {
-  alias = "existing"
+
+provider "aws" {
+  alias                       = "existing"
+  region                      = "ap-southeast-7"
+  access_key                  = "test"
+  secret_key                  = "test"
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+  skip_metadata_api_check     = true
+  skip_region_validation      = true
+}
+
+override_data {
+  target = data.aws_ami.ubuntu
+  values = { id = "ami-0123456789abcdef0" }
 }
 variables {
   aws_account_id                    = "147997138960"
@@ -16,7 +34,7 @@ variables {
   admin_cidr                        = "0.0.0.0/0"
   alert_email                       = "example@example.com"
   deployment_existing_ec2_role_name = "instanceRole"
-  # Mock plans have no real AWS SG to import.
+  # These offline plans must not import a real AWS security group.
   adopt_legacy_database_security_group = false
 }
 run "existing_lab_preserved" {
