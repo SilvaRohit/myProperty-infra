@@ -2,6 +2,9 @@ Infrastructure: [Terraform AWS infrastructure](https://github.com/SilvaRohit/myP
 
 # TeceroTech-Property — AWS Infrastructure with Terraform
 
+**Rebuild automation:** [Current rebuild and lifecycle guide](docs/REBUILD.md). The earlier walkthrough below records the pre-module lab layout; use the new guide and moved resource addresses for current operations.
+
+
 Infrastructure and operational reference for the TeceroTech-Property portfolio lab: custom networking, EC2, imported RDS, image deployment, recovery, remote Terraform execution, and CloudWatch monitoring.
 
 **Documented:** 23 October 2026  
@@ -1030,4 +1033,3 @@ Recommended evidence is the real plan/apply history, workflows, sanitized archit
 - [CloudWatch dashboard syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Dashboard-Body-Structure.html)
 - [Docker awslogs driver](https://docs.docker.com/engine/logging/drivers/awslogs/)
 - [AWS Pricing Calculator](https://calculator.aws/)
-

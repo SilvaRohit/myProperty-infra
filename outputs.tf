@@ -1,38 +1,38 @@
 output "vpc_id" {
-  value = module.vpc.vpc_id
+  value = try(module.lab[0].vpc_id, null)
 }
 output "public_subnet_ids" {
-  value = module.vpc.public_subnets
+  value = try(module.lab[0].public_subnet_ids, null)
 }
 output "private_subnet_ids" {
-  value = module.vpc.private_subnets
+  value = try(module.lab[0].private_subnet_ids, null)
 }
 output "security_group_id" {
-  value = aws_security_group.property_app.id
+  value = try(module.lab[0].security_group_id, null)
 }
 output "instance_id" {
-  value = aws_instance.property_app.id
+  value = try(module.lab[0].instance_id, null)
 }
 output "instance_hostname" {
   description = "Private DNS name; not your public website address"
-  value       = aws_instance.property_app.private_dns
+  value       = try(module.lab[0].private_dns, null)
 }
 output "public_ip" {
-  value = aws_instance.property_app.public_ip
+  value = try(module.lab[0].public_ip, null)
 }
 output "selected_ami_id" {
-  value = aws_instance.property_app.ami
+  value = data.aws_ami.ubuntu.id
 }
 
 #RDS Outputs
 output "rds_endpoint" {
   description = "Existing RDS host and port; not a password."
-  value       = aws_db_instance.existing_property_db.endpoint
+  value       = try(module.lab[0].database_endpoint, null)
 }
 
 output "rds_address" {
   description = "Existing RDS hostname for the application's DATABASE_HOST."
-  value       = aws_db_instance.existing_property_db.address
+  value       = try(module.lab[0].database_address, null)
 }
 
 output "elastic_ip_address" {
@@ -63,7 +63,7 @@ output "github_ecr_push_role_arn" {
 
 #Github Autodeploy Outputs
 output "deployment_ec2_instance_id" {
-  value = aws_instance.property_app.id
+  value = try(module.lab[0].instance_id, null)
 }
 
 output "deployment_ssm_document_name" {
@@ -101,4 +101,11 @@ output "alerts_topic_arn" {
 output "application_log_group_name" {
   description = "CloudWatch log group for application logs"
   value       = aws_cloudwatch_log_group.property_app.name
+}
+
+output "deployment_target_parameter" {
+  value = aws_ssm_parameter.deployment_target.name
+}
+output "rehearsal" {
+  value = var.rehearsal_enabled ? { instance_id = module.rehearsal[0].instance_id, public_ip = module.rehearsal[0].public_ip, database_address = module.rehearsal[0].database_address } : null
 }

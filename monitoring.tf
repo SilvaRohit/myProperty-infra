@@ -1,6 +1,6 @@
 resource "aws_iam_role_policy" "property_cloudwatch_metrics" {
   name = "property-app-cloudwatch-agent-metrics"
-  role = var.deployment_existing_ec2_role_name
+  role = local.property_deploy_ec2_role_name
 
   policy = jsonencode({
     Version = "2012-10-17"

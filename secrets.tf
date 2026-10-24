@@ -10,7 +10,7 @@ resource "aws_secretsmanager_secret" "property_config" {
 
 resource "aws_iam_role_policy" "property_config_read" {
   name = "property-app-read-config"
-  role = var.deployment_existing_ec2_role_name
+  role = local.property_deploy_ec2_role_name
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -28,4 +28,3 @@ resource "aws_iam_role_policy" "property_config_read" {
     ]
   })
 }
-

@@ -1,49 +1,50 @@
 locals {
-  property_dashboard_charts = [
+  property_dashboard_charts = var.lab_enabled ? [
     {
       title   = "EC2 CPU usage (%)"
       stat    = "Average"
-      metrics = [["AWS/EC2", "CPUUtilization", "InstanceId", aws_instance.property_app.id]]
+      metrics = [["AWS/EC2", "CPUUtilization", "InstanceId", module.lab[0].instance_id]]
     },
     {
       title   = "EC2 memory usage (%)"
       stat    = "Average"
-      metrics = [["CWAgent", "mem_used_percent", "InstanceId", aws_instance.property_app.id]]
+      metrics = [["CWAgent", "mem_used_percent", "InstanceId", module.lab[0].instance_id]]
     },
     {
       title   = "EC2 root disk usage (%)"
       stat    = "Maximum"
-      metrics = [["CWAgent", "disk_used_percent", "InstanceId", aws_instance.property_app.id]]
+      metrics = [["CWAgent", "disk_used_percent", "InstanceId", module.lab[0].instance_id]]
     },
     {
       title   = "EC2 status checks (0 = healthy)"
       stat    = "Maximum"
-      metrics = [["AWS/EC2", "StatusCheckFailed", "InstanceId", aws_instance.property_app.id]]
+      metrics = [["AWS/EC2", "StatusCheckFailed", "InstanceId", module.lab[0].instance_id]]
     },
     {
       title   = "RDS CPU usage (%)"
       stat    = "Average"
-      metrics = [["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", aws_db_instance.existing_property_db.identifier]]
+      metrics = [["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", module.lab[0].database_identifier]]
     },
     {
       title   = "RDS database connections"
       stat    = "Maximum"
-      metrics = [["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", aws_db_instance.existing_property_db.identifier]]
+      metrics = [["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", module.lab[0].database_identifier]]
     },
     {
       title   = "RDS free storage"
       stat    = "Minimum"
-      metrics = [["AWS/RDS", "FreeStorageSpace", "DBInstanceIdentifier", aws_db_instance.existing_property_db.identifier]]
+      metrics = [["AWS/RDS", "FreeStorageSpace", "DBInstanceIdentifier", module.lab[0].database_identifier]]
     },
     {
       title   = "RDS freeable memory"
       stat    = "Minimum"
-      metrics = [["AWS/RDS", "FreeableMemory", "DBInstanceIdentifier", aws_db_instance.existing_property_db.identifier]]
+      metrics = [["AWS/RDS", "FreeableMemory", "DBInstanceIdentifier", module.lab[0].database_identifier]]
     }
-  ]
+  ] : []
 }
 
 resource "aws_cloudwatch_dashboard" "property" {
+  count          = var.lab_enabled ? 1 : 0
   dashboard_name = "property-app-dev"
 
   dashboard_body = jsonencode({

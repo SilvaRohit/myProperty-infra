@@ -5,9 +5,9 @@ environment    = "dev"
 
 vpc_name                = "custom-vpc1"
 vpc_cidr                = "10.0.0.0/16"
-availability_zones      = ["ap-southeast-7a", "ap-southeast-7b"]
-public_subnet_cidrs      = ["10.0.1.0/24", "10.0.4.0/24"]
-private_subnet_cidrs     = ["10.0.2.0/24", "10.0.3.0/24"]
+availability_zones      = ["ap-southeast-7a", "ap-southeast-7b", "ap-southeast-7c"]
+public_subnet_cidrs      = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+private_subnet_cidrs     = ["10.0.100.0/24", "10.0.101.0/24", "10.0.102.0/24"]
 
 instance_type = "t3.micro"
 instance_name = "property-app"
@@ -16,3 +16,13 @@ admin_cidr    = "REPLACE_WITH_YOUR_PUBLIC_IPV4/32"
 ubuntu_ami_id = "REPLACE_WITH_VERIFIED_AMI_ID"
 
 deployment_existing_ec2_role_name = "instanceRole"
+
+
+alert_email = "REPLACE_WITH_YOUR_ALERT_EMAIL"
+
+# Preserve the running lab during adoption.
+lab_enabled = true
+rebuild_mode = "existing"
+adopt_legacy_database_security_group = true
+database_deletion_protection = true
+rehearsal_enabled = false

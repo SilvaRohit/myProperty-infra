@@ -9,7 +9,7 @@ resource "aws_cloudwatch_log_group" "property_app" {
 
 resource "aws_iam_role_policy" "property_application_logs" {
   name = "property-app-cloudwatch-logs"
-  role = var.deployment_existing_ec2_role_name
+  role = local.property_deploy_ec2_role_name
 
   policy = jsonencode({
     Version = "2012-10-17"

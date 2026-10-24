@@ -1,0 +1,26 @@
+{
+  "agent": {
+    "metrics_collection_interval": 60,
+    "region": "ap-southeast-7"
+  },
+  "metrics": {
+    "namespace": "CWAgent",
+    "append_dimensions": {
+      "InstanceId": "${aws:InstanceId}"
+    },
+    "aggregation_dimensions": [
+      ["InstanceId"]
+    ],
+    "metrics_collected": {
+      "disk": {
+        "resources": ["/"],
+        "measurement": ["used_percent"],
+        "drop_device": true,
+        "drop_original_metrics": ["disk_used_percent"]
+      },
+      "mem": {
+        "measurement": ["used_percent"]
+      }
+    }
+  }
+}

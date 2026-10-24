@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+install -d -m 700 /opt/property-app-rebuild
+python3 - <<'PY'
+import base64, gzip, json, pathlib
+payload = json.loads(gzip.decompress(base64.b64decode('${payload}')))
+root = pathlib.Path('/opt/property-app-rebuild')
+for name, content in payload['files'].items():
+    if '/' in name or name in ('.', '..'):
+        raise SystemExit('Invalid bootstrap filename.')
+    path = root / name
+    path.write_text(content)
+    path.chmod(0o600)
+config = root / 'config.json'
+config.write_text(json.dumps(payload['config']))
+config.chmod(0o600)
+PY
+exec bash /opt/property-app-rebuild/bootstrap-ec2.sh

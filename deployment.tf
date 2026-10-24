@@ -71,6 +71,7 @@ resource "aws_ssm_document" "property_deploy" {
         timeoutSeconds = "1500"
         runCommand = [
           "set -eu",
+          "if [ -f /opt/property-app-rebuild/started ]; then timeout 600 cloud-init status --wait; test -f /opt/property-app-rebuild/completed; fi",
           "/opt/property-app-deploy/refresh-env.sh",
           "exec /opt/property-app-deploy/deploy.sh \"$SSM_ImageUri\""
         ]
@@ -88,7 +89,7 @@ resource "aws_iam_role_policy" "github_property_deploy" {
       {
         Effect   = "Allow"
         Action   = "ssm:SendCommand"
-        Resource = [aws_ssm_document.property_deploy.arn, aws_instance.property_app.arn]
+        Resource = concat([aws_ssm_document.property_deploy.arn], [for lab in module.lab : lab.instance_arn])
       },
       {
         Effect   = "Allow"
@@ -98,4 +99,3 @@ resource "aws_iam_role_policy" "github_property_deploy" {
     ]
   })
 }
-
