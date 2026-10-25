@@ -1,25 +1,20 @@
-Infrastructure: [Terraform AWS infrastructure](https://github.com/SilvaRohit/myProperty-infra)
-
 # TeceroTech-Property — AWS Infrastructure with Terraform
 
-**Rebuild automation:** [Current rebuild and lifecycle guide](docs/REBUILD.md). The earlier walkthrough below records the pre-module lab layout; use the new guide and moved resource addresses for current operations.
+An AWS portfolio lab that takes a property-management application from VPC fundamentals to versioned deployment, monitoring, backup recovery and repeatable infrastructure rebuilds.
 
-
-Infrastructure and operational reference for the TeceroTech-Property portfolio lab: custom networking, EC2, imported RDS, image deployment, recovery, remote Terraform execution, and CloudWatch monitoring.
-
-**Documented:** 23 October 2026  
-**Infrastructure repository:** [SilvaRohit/myProperty-infra](https://github.com/SilvaRohit/myProperty-infra)  
-**Infrastructure branch:** `main`  
-**Application repository:** [SilvaRohit/myProperty](https://github.com/SilvaRohit/myProperty/tree/aws-deployment)  
-**AWS region:** `ap-southeast-7` — Thailand  
+**Updated:** 25 October 2026  
+**Infrastructure:** [SilvaRohit/myProperty-infra](https://github.com/SilvaRohit/myProperty-infra), branch `main`  
+**Application:** [SilvaRohit/myProperty](https://github.com/SilvaRohit/myProperty/tree/aws-deployment), branch `aws-deployment`  
+**Region:** `ap-southeast-7` — Thailand  
 **HCP organization / workspace:** `tecerotech` / `property-app-dev`
 
-Place this file at the **infrastructure repository root as `README.md`**.
+**Current operations:** use the [rebuild, readiness and decommission guide](docs/REBUILD.md). The original provisioning/import walkthroughs below preserve the project's history; their old physical IDs and root resource addresses are not the current rebuild inputs.
 
-The documentation combines the inspected starting Terraform snapshot with the changes completed during the lab. The latest private infrastructure checkout was not directly available for a final source audit; verify exact file names, input values, and resource addresses against the current checkout and HCP state. The application branch was reviewed at `7d3cd41ad1f2ef5039aeb3b685fbf852707e3c1d`. This is not a fresh audit of the running AWS account.
+Fresh provisioning, snapshot/database recovery, uploaded-file recovery, controlled teardown and primary website recreation have been exercised. This is a Single-AZ portfolio lab with documented application/runtime limitations, not a production-availability claim.
 
 ## Contents
 
+- [Current lifecycle and tested results](#current-lifecycle-and-tested-results)
 - [1. Project outcome](#1-project-outcome)
 - [2. Architecture and network behavior](#2-architecture-and-network-behavior)
 - [3. Resource ownership and repository layout](#3-resource-ownership-and-repository-layout)
@@ -40,6 +35,35 @@ The documentation combines the inspected starting Terraform snapshot with the ch
 - [18. Scope limits and future work](#18-scope-limits-and-future-work)
 - [19. Portfolio evidence and references](#19-portfolio-evidence-and-references)
 
+## Current lifecycle and tested results
+
+The disposable infrastructure is `module.lab[0]`. The retained foundation holds the EIP allocation, registry/images, S3 backup bucket, application secret, IAM/OIDC resources, SNS/log group and HCP state.
+
+| Operation | Required configuration |
+|---|---|
+| Recreate saved data | `lab_enabled=true`, `rebuild_mode="restore"`, an available `database_snapshot_identifier`, retained `initial_image_uri`, optional uploads prefix |
+| Create an empty application database | `lab_enabled=true`, `rebuild_mode="fresh"`, empty snapshot input |
+| Prepare teardown | Keep the lab enabled; apply `database_deletion_protection=false` and a new unused `final_snapshot_identifier` |
+| Remove disposable infrastructure | After preparation is Applied, set `lab_enabled=false` and apply the reviewed deletion plan |
+| Leave the rehearsal off | `rehearsal_enabled=false` |
+
+Keep `adopt_legacy_database_security_group=false` after the completed adoption. A restored lab stays in `restore` mode; do not reset it to `existing` after startup.
+
+EC2 user data installs Docker/Compose, AWS CLI, SSM, Caddy, CloudWatch Agent and the deployment/backup/restore runtime. It retrieves the retained configuration secret, uses the new RDS endpoint and starts the selected ECR image. An uploads prefix restores that archive during first boot. A new GitHub build is not required just to start the retained image.
+
+**HCP Applied is not a website-readiness check.** Wait for `/opt/property-app-rebuild/completed`, healthy application/RDS checks and a successful public HTTPS response. First-boot installation and certificate setup can continue after Terraform creates the instance.
+
+| Evidence | Observed result |
+|---|---|
+| Fresh isolated rehearsal, 24 October 2026 | New EC2/RDS; local app/proxy HTTP 200 and verified RDS TLS |
+| Snapshot recovery rehearsal, 24 October 2026 | Original and restored copies each returned 1 property and 10 units |
+| Upload recovery | Synthetic file containing `TeceroTech document recovery test` recovered; app remained healthy |
+| Primary teardown | HCP Applied, encrypted final snapshot available and deployment target `offline` |
+| Primary recreation, reported by 25 October 2026 | Website returned after automated first-boot setup completed |
+| Repeat lifecycle troubleshooting | Duplicate final-snapshot names and startup-readiness delay identified and documented |
+
+Counts, one recovered file and a working website are recovery evidence, not a full integrity or business-feature audit. AWS IDs change on rebuild; discover the current target through Parameter Store.
+
 ## 1. Project outcome
 
 The goal was to build a useful AWS portfolio project from VPC fundamentals through deployment, recovery, and monitoring, using an existing property-management application as the workload.
@@ -49,14 +73,14 @@ The goal was to build a useful AWS portfolio project from VPC fundamentals throu
 | Networking | Custom VPC, public/private subnets, routes, Internet Gateway, application SG |
 | Compute | Ubuntu x86_64 EC2, `t3.micro`, encrypted root disk expanded to 30 GiB |
 | Addressing | Existing Elastic IP imported and associated with EC2 |
-| Database | Existing private-access RDS PostgreSQL adopted into Terraform |
-| Database protection | Seven-day automated backups, deletion protection, Terraform destruction guard |
+| Database | Original private RDS adopted; fresh and snapshot-restored RDS supported by the reusable module |
+| Database protection | Seven-day automated backups, AWS deletion protection and a reviewed two-apply final-snapshot teardown |
 | Registry | ECR repository `property-app-dev` and versioned image delivery |
 | Deployment | GitHub OIDC → constrained SSM document → installed EC2 runtime |
 | Rollback | Separate GitHub workflow and SSM rollback document |
 | State | HCP Terraform remote state, remote runs, VCS integration, manual apply |
 | Authentication | Separate HCP plan/apply roles and application GitHub role |
-| Upload recovery | Private/versioned S3 backup bucket, lifecycle rules, timer, isolated restore test |
+| Upload recovery | Private/versioned S3 backups, daily timer, first-boot or SSM restore into a new volume |
 | Configuration | Secrets Manager secret metadata and EC2 read permission |
 | Monitoring | EC2 agent metrics, four resource alarms, SNS email, dashboard |
 | Logs | Seven-day application log group and scoped EC2 log-write permission |
@@ -78,12 +102,12 @@ flowchart TB
             EC2 --> Web["Caddy and loopback Docker app"]
         end
         Web -->|"5432 from application SG"| RDS["RDS with dedicated DB SG"]
-        RDS --- Group["Retained six-subnet DB group"]
+        RDS --- Group["Private database subnet group"]
     end
     EC2 -->|"Upload archives"| S3["Private S3 backups"]
 ```
 
-The subnet-group node records the retained inventory. It does not mean RDS runs in all six subnets. The imported instance is Single-AZ, and its DB subnet group contains both public and private subnets.
+The current fresh/restore module uses a private-subnet DB group. The original imported database used a mixed six-subnet group, recorded in the historical adoption section. RDS remains Single-AZ and does not run in every subnet in its group.
 
 ### Networking decisions
 
@@ -102,13 +126,13 @@ The starting snapshot validated three AZs and three entries in each subnet list.
 
 | Resource | Attached group | Important rule |
 |---|---|---|
-| EC2 | `aws_security_group.property_app` | Public 80/443 and lab SSH 22 |
-| RDS | Existing dedicated group read by `data.aws_security_group.existing_rds` | TCP 5432 from the EC2 application SG |
+| EC2 | `module.lab[0].aws_security_group.property_app` | Public 80/443 and lab SSH 22 |
+| RDS | `module.lab[0].aws_security_group.database` | TCP 5432 from the EC2 application SG |
 | RDS | Application SG | Removed during hardening |
 
 The app SG was previously attached to RDS as well. Removing it from `vpc_security_group_ids` left the dedicated database group as the intended boundary. SG permissions are combined across all attached groups; adding a second group does not cancel broader permissions from the first.
 
-The dedicated DB group's rules remain externally managed/reused through a data source. Terraform manages the RDS attachment but does not thereby own that SG or its rules.
+The dedicated DB group and PostgreSQL ingress rule were imported into the lab module. They are now managed and recreated with the disposable network rather than looked up by an old SG ID.
 
 SSH TCP 22 remains open to `0.0.0.0/0` by the explicit lab decision. Broad EC2 outbound IPv4 access also remains. No SSH restriction is claimed.
 
@@ -120,53 +144,41 @@ The web container publishes `127.0.0.1:5173:5173`. Caddy handles public HTTPS 44
 
 | Item | Management boundary |
 |---|---|
-| VPC module, EC2, app SG/rules | Terraform root |
-| Existing RDS instance and DB subnet group | Imported into Terraform |
-| Existing Elastic IP and association | Imported into Terraform |
-| ECR, GitHub role/policies, deployment documents | Terraform additions |
-| Existing EC2 role `instanceRole` | Reused; Terraform manages added policies/profile integration |
-| Dedicated RDS SG | Existing external SG read through data source |
-| HCP federation roles and bootstrap permissions | Created/configured separately during authentication setup |
-| HCP org/workspace/VCS settings | Configured in HCP UI; not all are Terraform resources here |
-| Secret metadata and EC2 access policy | Terraform |
-| Secret value | Populated separately in Secrets Manager |
-| S3 backup bucket and controls | Terraform |
-| Caddy, Docker, installed runtime, timer, agent | Host installation/bootstrap steps |
-| Cloudflare DNS | Managed separately |
-| PITR test DB and isolated restore volume | Temporary operational test resources |
+| VPC/subnets/routes, app and DB SGs/rules, EC2, DB subnet group, RDS, EIP association | Disposable `module.lab[0]` |
+| Parallel recovery rehearsal | Independent `module.rehearsal[0]` |
+| EIP allocation, ECR/images, backup bucket, secret metadata, IAM/OIDC, SNS/log group | Retained Terraform foundation |
+| Deployment target parameter | Terraform sets current primary EC2 ID or `offline` |
+| Existing role `instanceRole` | Reused; Terraform manages the lab's policies/profile integration |
+| HCP federation roles and workspace/VCS settings | Existing setup retained; not all are resources in this root |
+| Secret value and existing SSH key pair | Retained prerequisites supplied separately |
+| Docker, Caddy, runtime, backup timer and agent on new hosts | Automated EC2 first-boot installation |
+| Cloudflare DNS | Managed separately; record points to retained EIP |
+| Historical PITR copy / ad hoc resources | Operator inventory and cleanup |
 
-This is adoption of an existing environment. A single `terraform apply` does not currently populate a fresh database, install every host component, and start the complete application.
+One reviewed HCP apply can create a fresh or restored lab and start the selected image when retained prerequisites and inputs are available. HCP completion precedes the separate bootstrap and website-readiness checks.
 
 ### Logical file map
 
-Names below reflect the lab's organization. A resource can live in another `.tf` file without changing its Terraform address.
-
 | File or area | Purpose |
 |---|---|
-| `versions.tf` | AWS provider requirement; HCP cloud block added to the existing Terraform configuration |
-| `providers.tf` | Default AWS provider, account guard, default tags |
-| Provider `aws.existing` | Alias used for adopted resources in the same account/region |
-| `variables.tf` | Account, region, AMI/key pair, network, instance, and other inputs |
-| `networking.tf` | VPC module |
-| `security.tf` | Application SG and standalone rules |
-| `compute.tf` | EC2 and root-volume settings |
-| `database.tf` | Imported RDS/subnet-group configuration |
-| EIP import configuration | Existing allocation and association |
-| `ecr.tf` | ECR repository |
-| `github_actions.tf` | GitHub OIDC provider/role and image-push permissions |
-| Deployment configuration | Existing EC2 role/profile and deployment SSM document |
-| Rollback configuration / `rollback-runtime/` | Rollback SSM document and embedded runtime scripts |
-| `s3-backups.tf` | Backup bucket, controls, lifecycle, and EC2 backup access |
-| `secrets.tf` | Secret metadata and read permission |
-| `monitoring.tf` | EC2 custom-metric publication permission |
-| `notifications.tf` | SNS topic/subscription and CloudWatch publish policy |
-| `alarms.tf` | EC2 disk/memory alarms |
-| `rds-alarms.tf` | RDS CPU/storage alarms |
-| `dashboard.tf` | Combined dashboard |
-| `logs.tf` | Application log group and EC2 writer policy |
-| `outputs.tf` | Resource IDs/addresses and integration values |
-| `terraform.tfvars.example` | Example values only |
-| `.terraform.lock.hcl` | Tracked provider selections/checksums |
+| `versions.tf` / `providers.tf` | Provider requirements, HCP cloud block, account/region guards and tags |
+| `variables.tf` / `rebuild-variables.tf` | Original inputs and lifecycle/recovery switches |
+| `lab.tf` | Primary and optional rehearsal module instances |
+| `modules/property-lab/networking.tf` / `security.tf` / `database-security.tf` | VPC and separate app/database security boundaries |
+| `modules/property-lab/compute.tf` / `database.tf` / `addressing.tf` | Disposable EC2, RDS/subnet group and EIP association |
+| `modules/property-lab/bootstrap.tf` / `bootstrap/` | Compressed user data and first-boot/runtime assets |
+| `moved.tf` / `adopt-database-security.tf` | Original address migration and one-time SG adoption |
+| Root `networking.tf` / `compute.tf` | Retained addressing and AMI selection |
+| `ecr.tf` / `github_actions.tf` | Registry and GitHub OIDC/image-push permissions |
+| `deployment.tf` / `deployment-target.tf` | EC2 role/profile, deployment document and target parameter |
+| `rollback.tf` / `rollback-runtime/` | Rollback document and wrapper/runtime |
+| `restore.tf` | Operator SSM document for uploaded-file restore |
+| `s3-backups.tf` / `secrets.tf` | Backup controls/access and retained secret metadata/access |
+| `monitoring.tf` / `alarms.tf` / `dashboard.tf` / `logs.tf` | Metrics, conditional lab alarms/dashboard and retained logs |
+| `notifications.tf` / `outputs.tf` | SNS routing and integration outputs |
+| `docs/REBUILD.md` | Current rebuild/readiness/teardown guide and failure recovery |
+| `tests/` / `.github/workflows/validate.yml` | Bootstrap tests, plan-only lifecycle checks and CI |
+| `terraform.tfvars.example` / `.terraform.lock.hcl` | Example inputs and provider selections/checksums |
 
 Terraform reads all `.tf` files in the same root directory together. Keeping ECR and GitHub OIDC in separate files is valid; neither needs to be merged into the other.
 
@@ -326,16 +338,15 @@ The EIP allocation is managed separately from its association. Do not also confi
 
 ### Protection and plan review
 
-The lab adopted:
+The original adoption used resource-level destruction guards. The disposable module now uses AWS `deletion_protection` and the reviewed lifecycle procedure. Retained EIP allocation, backup bucket, secret and OIDC resources keep their configured guards.
 
-- `prevent_destroy` guards for protected imported resources.
-- RDS `deletion_protection=true` after the protection stage.
-- `skip_final_snapshot=false` and a final snapshot identifier.
-- `apply_immediately=false` for appropriate RDS changes.
+- Keep `database_deletion_protection=true` during normal operation.
+- The primary DB requests a final snapshot on deliberate deletion.
+- Apply a new unused `final_snapshot_identifier` while `lab_enabled=true`, before disabling the module.
+- `database_snapshot_identifier` selects an existing restore source; it is different from the next final-snapshot name.
+- Existing mode preserves its modification timing; fresh/restore mode applies its setup modifications immediately.
 
-Terraform-only settings such as final-snapshot behavior can appear as in-place changes after import. Review each diff; `0 to destroy` does not mean every change is operationally harmless.
-
-A fixed final snapshot name can collide with an existing snapshot during future deletion. Choose an available final identifier as part of a deliberate decommission.
+Review the full plan, not only resource counts. Changing a final-snapshot variable after disabling the module can leave deletion using the resource's earlier saved setting. See [duplicate-snapshot recovery](docs/REBUILD.md#duplicate-final-snapshot-name).
 
 ### Final RDS SG attachment
 
@@ -581,11 +592,12 @@ The command order is:
 
 ```text
 set -eu
+if [ -f /opt/property-app-rebuild/started ]; then timeout 600 cloud-init status --wait; test -f /opt/property-app-rebuild/completed; fi
 /opt/property-app-deploy/refresh-env.sh
 exec /opt/property-app-deploy/deploy.sh "$SSM_ImageUri"
 ```
 
-The document is a constrained deployment interface. GitHub does not need arbitrary administrator shell access through `AWS-RunShellScript`.
+GitHub resolves the instance from `/property-app/dev/deployment/instance-id`. An unreadable, invalid or `offline` configured target fails without falling back to an old ID. The document waits when the bootstrap-start marker exists; operators still verify readiness before triggering an image deployment. GitHub uses this constrained document rather than arbitrary `AWS-RunShellScript` access.
 
 ### Rollback document
 
@@ -601,7 +613,7 @@ Do not drop the runtime directory from Git: Terraform's `file()` / `filebase64()
 
 The app repository contains deployment, backup, environment-refresh, metrics, and Compose sources. The active copies live under `/opt/property-app-deploy` or system configuration paths.
 
-Installing a new SSM document does not magically install every host file. Likewise, an image deployment does not copy a changed Compose template. The application README documents the one-time adoption and subsequent runtime-template update procedures.
+For fresh/restore hosts, infrastructure user data installs the runtime, environment refresh, Docker/Caddy, CA bundle, agent and timer, then starts the pinned image. Existing-host runtime/template changes remain separate: an SSM document or image update does not copy every changed host file. The application README labels the original manual adoption as historical.
 
 The GitHub rollback button remains the operating path; automatic deployment stays enabled. A rollback is not a database restore or a Terraform rollback.
 
@@ -613,7 +625,7 @@ The completed protection stage set:
 
 - Automated backup retention to **7 days**.
 - RDS deletion protection to **true**.
-- Terraform `prevent_destroy` on the protected DB resource.
+- A controlled two-apply lifecycle for the disposable DB; retained foundation resources keep their destruction guards.
 - Final snapshot behavior configured for deliberate deletion.
 
 The imported backup window was `08:34–09:04 UTC` and maintenance window `Friday 15:10–15:40 UTC`. Check the current DB settings/pending modifications rather than assuming every change is immediate.
@@ -689,7 +701,7 @@ The added role policy allows the needed bucket/prefix listing and location reads
 
 ### Host schedule and evidence
 
-The application repository supplies the archive script and systemd units. They were installed on EC2 with a daily **02:00 Asia/Bangkok** schedule and `Persistent=true`.
+The original archive script and systemd units came from the application repository. Fresh/restore infrastructure bootstrap now installs the reviewed assets, including a job that resolves the active volume from `release.env`. The daily schedule remains **02:00 Asia/Bangkok**, with `Persistent=true`.
 
 The timer's enabled/next-run state proves scheduling, not successful execution. Check the service journal and actual S3 objects.
 
@@ -703,7 +715,7 @@ The recovery exercise:
 6. Extracted into an isolated Docker volume.
 7. Read the synthetic recovery message.
 
-See the application README for exact restore commands. The live volume was not replaced during the test.
+That original isolated extraction did not replace the live volume. The later rehearsal also exercised the SSM restore helper: it verifies checksum/paths, extracts into a new volume, selects it only after health checks and retains the previous volume. The backup job then follows the selected active volume. See the current rebuild guide and application README for commands.
 
 ## 13. Secrets Manager
 
@@ -941,39 +953,30 @@ sudo tail -n 50 /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.lo
 
 ## 17. Pause, resume, and decommission
 
-### Ending the exercise
+### Temporary stop
 
-Concluding the lab is not an AWS stop/delete operation. Running resources remain active until deliberately stopped or removed.
+Stopping EC2 and an eligible RDS instance preserves their storage but differs from removing the disposable module. Alarms/deployments can fail while resources are stopped, the host backup timer cannot run, and RDS automatically restarts after seven consecutive stopped days. Retained storage/public IPv4 and other resources can still cost money.
 
-### Temporary pause
+### Controlled decommission
 
-A temporary pause can stop EC2 and the eligible RDS instance. Preserve disks, database storage, snapshots, EIP allocation, and configuration if resuming.
+Use the [complete current procedure](docs/REBUILD.md#6-deliberately-turn-off-the-primary-lab).
 
-- Resource alarms may send INSUFFICIENT_DATA emails.
-- GitHub app deployments can fail while EC2/RDS are unavailable.
-- S3 backup timers cannot execute while EC2 is stopped.
-- RDS automatically starts again after seven consecutive stopped days.
-- Retained storage, snapshots, allocated public IPv4, ECR/S3 objects, and telemetry can still cost money.
+1. Back up current uploads and record the successful S3 prefix. Keep the secret, selected image, snapshot KMS key, existing SSH key pair and HCP state.
+2. Keep `lab_enabled=true` and the current `rebuild_mode`. Set `database_deletion_protection=false` and a new unused `final_snapshot_identifier`.
+3. Save the HCP variables, review and apply that preparation. Confirm the new name is in the applied configuration.
+4. Set `lab_enabled=false` and keep `rehearsal_enabled=false`. Review/apply removal of the primary module and lab alarms/dashboard.
+5. Verify the new final snapshot is available/encrypted and the deployment target parameter is `offline`.
+6. Retain EIP allocation, ECR/images, S3 backups, secret, IAM/OIDC, SNS/log group and HCP state.
 
-Resume RDS first and wait for availability, then start EC2 and verify Docker/Caddy/SSM/agent, the website, and the backup timer. No automated pause/resume schedule was added.
+Do not combine the preparation and module removal into one apply. The restore-source snapshot exists; the next final-snapshot name must be unused. The guide documents `DBSnapshotAlreadyExists` recovery for an already-partial teardown without re-enabling the whole lab.
 
-### Deliberate deletion
+### Recreate after deletion
 
-`terraform destroy` operates on managed state; it does not mean everything in the AWS account will disappear.
+Set `lab_enabled=true`, keep `rebuild_mode="restore"` for saved data, select the desired available snapshot and uploads archive, keep an exact ECR image, and restore `database_deletion_protection=true`. Give the next final snapshot a different unused name. Review/apply in HCP and wait for bootstrap and HTTPS readiness.
 
-Before decommissioning:
+Keep `adopt_legacy_database_security_group=false`. Do not reset a live restored lab to `existing` or casually change its snapshot/image/uploads inputs; these settings can request replacement.
 
-1. Inventory state and all external/manual resources.
-2. Decide what data and recovery artifacts must be retained.
-3. Review a destroy plan in the correct workspace/account.
-4. Address protected resources only as a deliberate change.
-5. Arrange an available final DB snapshot name if deleting RDS.
-6. Handle S3 object versions/delete markers explicitly; `force_destroy=false` prevents an automatic nonempty-bucket purge.
-7. Inspect secret recovery windows, retained snapshots, EIP allocation, ECR images, OIDC/IAM bootstrap objects, Cloudflare records, and temporary test resources afterward.
-
-Do not remove the state to make a protected resource disappear. Removing state ownership is not resource deletion and can make future management harder.
-
-The staged HCP apply policies may not permit every destructive API. A completed teardown also requires verifying actual AWS inventory and billing resources.
+The lab can be rebuilt through one reviewed apply after configuring its retained inputs. There is no dedicated one-click start/stop workflow. Retained resources may continue billing. Current uploads backups expire after 30 days; preserve an independent archive/checksum for a longer shutdown.
 
 ## 18. Scope limits and future work
 
@@ -981,12 +984,12 @@ The staged HCP apply policies may not permit every destructive API. A completed 
 |---|---|
 | Availability | Single host/container and Single-AZ DB; no ALB/autoscaling |
 | Runtime | Vite development server; production adapter/image deferred |
-| Host automation | Manual/bootstrap components remain |
+| Host automation | Fresh/restore setup automated; existing-host file updates need an explicit rollout |
 | State | HCP selected; S3 state backend example is unused |
-| Network | No NAT; retained DB subnet group mixes subnet classes |
-| RDS SG | Rules externally managed through reused group |
+| Network | No NAT; fresh/restore DB group uses private subnets; original adoption inventory was mixed |
+| RDS SG | Dedicated SG/rule imported and now managed inside the disposable module |
 | SQL permissions | Master login retained; dedicated app role deferred |
-| Schema | Synchronization used; verified migrations not delivered |
+| Schema | Restore uses synchronization=false; fresh initialization is guarded; verified migrations deferred |
 | App quality | Selected fixes, incomplete business/security QA |
 | Deployment | In-place recreation; not zero downtime |
 | Runtime synchronization | Not every Git script/template is automatically installed |
@@ -1010,12 +1013,12 @@ This project demonstrates:
 - Distinguishing local CLI, HCP, GitHub, and EC2 identities.
 - Temporary OIDC credentials for automation.
 - Versioned releases and request-idempotent rollback.
-- Backup validation and isolated recovery exercises.
+- Backup validation, fresh provisioning, isolated recovery, primary website recreation and controlled teardown.
 - Capacity troubleshooting across AWS volumes and Linux filesystems.
 - Custom metrics, notification routing, dashboards, and centralized logs.
 - Honest documentation of implemented scope and remaining risks.
 
-Recommended evidence is the real plan/apply history, workflows, sanitized architecture, versioned image history, backup/recovery results, and CloudWatch views. Avoid claiming production HA, complete security hardening, or one-shot rebuilds that the implementation does not provide.
+Recommended evidence is the real plan/apply history, workflows, sanitized architecture, versioned image history, backup/recovery results, and CloudWatch views. Record successful bootstrap/readiness checks separately from HCP resource creation. Production HA, complete application hardening, zero-downtime releases and a dedicated one-click lifecycle button remain outside scope.
 
 ### Primary references
 
